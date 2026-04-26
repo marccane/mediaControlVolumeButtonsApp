@@ -9,9 +9,10 @@ import android.view.accessibility.AccessibilityEvent
 
 class VolumeKeyService : AccessibilityService() {
 
-    companion object {
-        private const val DOUBLE_PRESS_WINDOW = 350L
-        private const val LONG_PRESS_DURATION = 650L
+    private companion object {
+        const val DOUBLE_PRESS_WINDOW = 350L
+        const val LONG_PRESS_DURATION = 650L
+        const val LONG_PRESS = -1
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -125,8 +126,4 @@ class VolumeKeyService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
     override fun onInterrupt() {}
-
-    private companion object {
-        const val LONG_PRESS = -1
-    }
 }
