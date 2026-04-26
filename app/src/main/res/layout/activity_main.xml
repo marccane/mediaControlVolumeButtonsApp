@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Status card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/tv_service_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Checking service status…"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_open_accessibility"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Open Accessibility Settings" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Volume Up section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Volume Up"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Single press"
+                        android:textSize="16sp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_vol_up_single"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1F000000" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Double press"
+                        android:textSize="16sp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_vol_up_double"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1F000000" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Long hold"
+                        android:textSize="16sp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_vol_up_long"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Volume Down section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Volume Down"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Single press"
+                        android:textSize="16sp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_vol_down_single"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1F000000" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Double press"
+                        android:textSize="16sp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_vol_down_double"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1F000000" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Long hold"
+                        android:textSize="16sp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_vol_down_long"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</ScrollView>

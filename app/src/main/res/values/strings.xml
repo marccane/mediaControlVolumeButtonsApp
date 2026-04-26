@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Media Control</string>
+    <string name="service_label">Volume Button Media Control</string>
+    <string name="accessibility_service_description">Intercepts volume button presses to trigger configurable media actions (next/previous track, play/pause, etc.) with single press, double press, and long hold gestures.</string>
+</resources>

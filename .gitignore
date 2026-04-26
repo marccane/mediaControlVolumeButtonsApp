@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+build/
+**/build/
+gradle-wrapper.jar
+
+# Android Studio
+.idea/
+*.iml
+local.properties
+
+# Keystore
+*.jks
+*.keystore
+
+# Generated
+app/src/main/res/raw/
+
+# OS
+.DS_Store
+Thumbs.db
