@@ -46,4 +46,15 @@ object GestureConfig {
             .putString(gesture.name, action.name)
             .apply()
     }
+
+    fun isActive(context: Context): Boolean =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean("active", true)
+
+    fun setActive(context: Context, active: Boolean) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("active", active)
+            .apply()
+    }
 }

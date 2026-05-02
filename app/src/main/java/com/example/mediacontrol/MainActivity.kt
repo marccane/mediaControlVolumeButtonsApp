@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupSpinners()
+        setupActiveSwitch()
 
         binding.btnOpenAccessibility.setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -29,6 +30,15 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateServiceStatus()
+        // Sync switch in case something changed while app was in background
+        binding.switchActive.isChecked = GestureConfig.isActive(this)
+    }
+
+    private fun setupActiveSwitch() {
+        binding.switchActive.isChecked = GestureConfig.isActive(this)
+        binding.switchActive.setOnCheckedChangeListener { _, isChecked ->
+            GestureConfig.setActive(this, isChecked)
+        }
     }
 
     private fun setupSpinners() {

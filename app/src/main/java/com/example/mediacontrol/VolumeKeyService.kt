@@ -1,12 +1,14 @@
 package com.example.mediacontrol
 
 import android.accessibilityservice.AccessibilityService
+import android.annotation.SuppressLint
 import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 
+@SuppressLint("AccessibilityPolicy")
 class VolumeKeyService : AccessibilityService() {
 
     private companion object {
@@ -35,6 +37,7 @@ class VolumeKeyService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
+        if (!GestureConfig.isActive(this)) return false
         val state = keyStates[event.keyCode] ?: return false
         return when (event.action) {
             KeyEvent.ACTION_DOWN -> handleDown(event.keyCode, event.repeatCount, state)
