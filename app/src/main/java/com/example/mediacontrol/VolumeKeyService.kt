@@ -14,6 +14,9 @@ class VolumeKeyService : AccessibilityService() {
     private companion object {
         const val DOUBLE_PRESS_WINDOW = 350L
         const val LONG_PRESS_DURATION = 650L
+        // Mimic the native Android volume-repeat feel
+        const val VOLUME_REPEAT_START_DELAY = 400L  // must be > DOUBLE_PRESS_WINDOW
+        const val VOLUME_REPEAT_INTERVAL = 80L
         const val LONG_PRESS = -1
     }
 
@@ -24,8 +27,9 @@ class VolumeKeyService : AccessibilityService() {
         var pendingCount = 0
         var pendingRunnable: Runnable? = null
         var longPressRunnable: Runnable? = null
+        var volumeRepeatRunnable: Runnable? = null
         var isLongPressing = false
-        var hadRepeat = false  // true if key-repeat events fired during this hold
+        var hadRepeat = false
     }
 
     private val keyStates = mapOf(
@@ -42,7 +46,7 @@ class VolumeKeyService : AccessibilityService() {
         val state = keyStates[event.keyCode] ?: return false
         return when (event.action) {
             KeyEvent.ACTION_DOWN -> handleDown(event.keyCode, event.repeatCount, state)
-            KeyEvent.ACTION_UP -> handleUp(event.keyCode, state)
+            KeyEvent.ACTION_UP   -> handleUp(event.keyCode, state)
             else -> false
         }
     }
@@ -50,29 +54,45 @@ class VolumeKeyService : AccessibilityService() {
     private fun longGesture(keyCode: Int) =
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) GestureType.VOL_UP_LONG else GestureType.VOL_DOWN_LONG
 
-    private fun handleDown(keyCode: Int, repeatCount: Int, state: KeyState): Boolean {
-        if (repeatCount != 0) {
-            if (state.isLongPressing) return true  // custom long-press already fired, suppress repeats
-
-            val longAction = GestureConfig.getAction(this, longGesture(keyCode))
-            if (longAction == MediaAction.SYSTEM_DEFAULT) {
-                // We consumed the initial ACTION_DOWN so we can't rely on event pass-through.
-                // Drive volume manually for each OS repeat tick instead.
+    private fun startVolumeRepeat(keyCode: Int, state: KeyState) {
+        val repeater = object : Runnable {
+            override fun run() {
                 state.hadRepeat = true
+                // Cancel any pending single/double-press detection
                 state.pendingRunnable?.let { handler.removeCallbacks(it) }
                 state.pendingCount = 0
                 adjustVolume(keyCode)
+                handler.postDelayed(this, VOLUME_REPEAT_INTERVAL)
             }
-            // else: long-press runnable is counting down — suppress the repeat
-            return true
         }
+        state.volumeRepeatRunnable = repeater
+        handler.postDelayed(repeater, VOLUME_REPEAT_START_DELAY)
+    }
+
+    private fun stopVolumeRepeat(state: KeyState) {
+        state.volumeRepeatRunnable?.let { handler.removeCallbacks(it) }
+        state.volumeRepeatRunnable = null
+    }
+
+    private fun handleDown(keyCode: Int, repeatCount: Int, state: KeyState): Boolean {
+        // OS key-repeat events are unreliable in AccessibilityService — ignore them.
+        // Continuous volume is handled by our own Handler-based repeater.
+        if (repeatCount != 0) return true
 
         state.longPressRunnable?.let { handler.removeCallbacks(it) }
 
-        // Only need a long-press timer when the long-hold gesture does something custom
-        if (GestureConfig.getAction(this, longGesture(keyCode)) != MediaAction.SYSTEM_DEFAULT) {
+        val longAction = GestureConfig.getAction(this, longGesture(keyCode))
+        if (longAction == MediaAction.SYSTEM_DEFAULT) {
+            // Only start the volume repeater on the first press of a sequence.
+            // If pendingCount > 0 a previous tap hasn't been evaluated yet — the user
+            // is double-pressing, not holding, so don't start continuous volume.
+            if (state.pendingCount == 0) {
+                startVolumeRepeat(keyCode, state)
+            }
+        } else {
             val lp = Runnable {
                 state.isLongPressing = true
+                stopVolumeRepeat(state)
                 state.pendingRunnable?.let { handler.removeCallbacks(it) }
                 state.pendingCount = 0
                 executeGesture(keyCode, LONG_PRESS)
@@ -86,9 +106,8 @@ class VolumeKeyService : AccessibilityService() {
     private fun handleUp(keyCode: Int, state: KeyState): Boolean {
         state.longPressRunnable?.let { handler.removeCallbacks(it) }
         state.longPressRunnable = null
+        stopVolumeRepeat(state)
 
-        // Don't fire a press action if the key was held (either custom long-press fired,
-        // or OS key-repeats handled volume continuously)
         if (state.isLongPressing || state.hadRepeat) {
             state.isLongPressing = false
             state.hadRepeat = false
@@ -114,13 +133,12 @@ class VolumeKeyService : AccessibilityService() {
             dispatchAction(keyCode, GestureConfig.getAction(this, longGesture(keyCode)), 1)
             return
         }
-
         val gesture = when {
             keyCode == KeyEvent.KEYCODE_VOLUME_UP -> if (count >= 2) GestureType.VOL_UP_DOUBLE else GestureType.VOL_UP_SINGLE
             else                                  -> if (count >= 2) GestureType.VOL_DOWN_DOUBLE else GestureType.VOL_DOWN_SINGLE
         }
         val action = GestureConfig.getAction(this, gesture)
-        // For SYSTEM_DEFAULT, honour the actual press count (double-tap → 2 steps, triple → 3, …)
+        // For SYSTEM_DEFAULT honour the actual tap count: double-tap → 2 steps, triple → 3, …
         val times = if (action == MediaAction.SYSTEM_DEFAULT) count else 1
         dispatchAction(keyCode, action, times)
     }
