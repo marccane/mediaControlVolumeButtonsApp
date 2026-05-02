@@ -52,10 +52,19 @@ class VolumeKeyService : AccessibilityService() {
 
     private fun handleDown(keyCode: Int, repeatCount: Int, state: KeyState): Boolean {
         if (repeatCount != 0) {
-            state.hadRepeat = true
-            // If long-hold is SYSTEM_DEFAULT, let repeats through so the OS handles
-            // continuous volume change. Otherwise suppress them — long-press runnable will fire.
-            return GestureConfig.getAction(this, longGesture(keyCode)) != MediaAction.SYSTEM_DEFAULT
+            if (state.isLongPressing) return true  // custom long-press already fired, suppress repeats
+
+            val longAction = GestureConfig.getAction(this, longGesture(keyCode))
+            if (longAction == MediaAction.SYSTEM_DEFAULT) {
+                // We consumed the initial ACTION_DOWN so we can't rely on event pass-through.
+                // Drive volume manually for each OS repeat tick instead.
+                state.hadRepeat = true
+                state.pendingRunnable?.let { handler.removeCallbacks(it) }
+                state.pendingCount = 0
+                adjustVolume(keyCode)
+            }
+            // else: long-press runnable is counting down — suppress the repeat
+            return true
         }
 
         state.longPressRunnable?.let { handler.removeCallbacks(it) }
