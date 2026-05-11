@@ -14,8 +14,6 @@ class VolumeKeyService : AccessibilityService() {
     private companion object {
         const val DOUBLE_PRESS_WINDOW = 300L
         const val LONG_PRESS_DURATION = 600L
-        // Only needs to exceed a normal tap duration (~100ms), not DOUBLE_PRESS_WINDOW.
-        // The repeater is cancelled on ACTION_UP, so it only fires if the key is physically held.
         const val VOLUME_REPEAT_START_DELAY = 150L
         const val VOLUME_REPEAT_INTERVAL = 80L
         const val LONG_PRESS = -1
@@ -31,6 +29,9 @@ class VolumeKeyService : AccessibilityService() {
         var volumeRepeatRunnable: Runnable? = null
         var isLongPressing = false
         var hadRepeat = false
+        // True when we fired an immediate volume step on ACTION_DOWN so the
+        // delayed single-press action doesn't double-adjust.
+        var immediateStepFired = false
     }
 
     private val keyStates = mapOf(
@@ -52,14 +53,16 @@ class VolumeKeyService : AccessibilityService() {
         }
     }
 
+    private fun singleGesture(keyCode: Int) =
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) GestureType.VOL_UP_SINGLE else GestureType.VOL_DOWN_SINGLE
+
     private fun longGesture(keyCode: Int) =
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) GestureType.VOL_UP_LONG else GestureType.VOL_DOWN_LONG
 
-    private fun startVolumeRepeat(keyCode: Int, state: KeyState) {
+    private fun startVolumeRepeat(keyCode: Int, state: KeyState, initialDelay: Long = VOLUME_REPEAT_START_DELAY) {
         val repeater = object : Runnable {
             override fun run() {
                 state.hadRepeat = true
-                // Cancel any pending single/double-press detection
                 state.pendingRunnable?.let { handler.removeCallbacks(it) }
                 state.pendingCount = 0
                 adjustVolume(keyCode)
@@ -67,7 +70,7 @@ class VolumeKeyService : AccessibilityService() {
             }
         }
         state.volumeRepeatRunnable = repeater
-        handler.postDelayed(repeater, VOLUME_REPEAT_START_DELAY)
+        handler.postDelayed(repeater, initialDelay)
     }
 
     private fun stopVolumeRepeat(state: KeyState) {
@@ -76,30 +79,46 @@ class VolumeKeyService : AccessibilityService() {
     }
 
     private fun handleDown(keyCode: Int, repeatCount: Int, state: KeyState): Boolean {
-        // OS key-repeat events are unreliable in AccessibilityService — ignore them.
-        // Continuous volume is handled by our own Handler-based repeater.
         if (repeatCount != 0) return true
 
         state.longPressRunnable?.let { handler.removeCallbacks(it) }
 
-        val longAction = GestureConfig.getAction(this, longGesture(keyCode))
-        if (longAction == MediaAction.SYSTEM_DEFAULT) {
-            // Only start the volume repeater on the first press of a sequence.
-            // If pendingCount > 0 a previous tap hasn't been evaluated yet — the user
-            // is double-pressing, not holding, so don't start continuous volume.
-            if (state.pendingCount == 0) {
+        val singleAction = GestureConfig.getAction(this, singleGesture(keyCode))
+        val longAction   = GestureConfig.getAction(this, longGesture(keyCode))
+
+        when {
+            // Both single and long are default and this is the first press in a sequence:
+            // fire one volume step immediately so there is zero perceived delay, then
+            // keep repeating. If the user double-presses, the blip is the accepted trade-off.
+            singleAction == MediaAction.SYSTEM_DEFAULT
+                    && longAction == MediaAction.SYSTEM_DEFAULT
+                    && state.pendingCount == 0 -> {
+                adjustVolume(keyCode)
+                state.immediateStepFired = true
+                startVolumeRepeat(keyCode, state, initialDelay = VOLUME_REPEAT_INTERVAL)
+            }
+
+            // Long-hold is default but single is something custom (e.g. Play/Pause):
+            // can't fire immediately — use the normal delayed repeater.
+            longAction == MediaAction.SYSTEM_DEFAULT && state.pendingCount == 0 -> {
                 startVolumeRepeat(keyCode, state)
             }
-        } else {
-            val lp = Runnable {
-                state.isLongPressing = true
-                stopVolumeRepeat(state)
-                state.pendingRunnable?.let { handler.removeCallbacks(it) }
-                state.pendingCount = 0
-                executeGesture(keyCode, LONG_PRESS)
+
+            // Custom long-hold action: schedule the long-press runnable.
+            longAction != MediaAction.SYSTEM_DEFAULT -> {
+                val lp = Runnable {
+                    state.isLongPressing = true
+                    stopVolumeRepeat(state)
+                    state.pendingRunnable?.let { handler.removeCallbacks(it) }
+                    state.pendingCount = 0
+                    executeGesture(keyCode, LONG_PRESS)
+                }
+                state.longPressRunnable = lp
+                handler.postDelayed(lp, LONG_PRESS_DURATION)
             }
-            state.longPressRunnable = lp
-            handler.postDelayed(lp, LONG_PRESS_DURATION)
+
+            // longAction == SYSTEM_DEFAULT but pendingCount > 0 (mid double-press):
+            // don't start a repeater — the user is tapping, not holding.
         }
         return true
     }
@@ -112,6 +131,7 @@ class VolumeKeyService : AccessibilityService() {
         if (state.isLongPressing || state.hadRepeat) {
             state.isLongPressing = false
             state.hadRepeat = false
+            state.immediateStepFired = false
             return true
         }
 
@@ -130,17 +150,30 @@ class VolumeKeyService : AccessibilityService() {
     }
 
     private fun executeGesture(keyCode: Int, count: Int) {
+        val state = keyStates[keyCode] ?: return
+
         if (count == LONG_PRESS) {
+            state.immediateStepFired = false
             dispatchAction(keyCode, GestureConfig.getAction(this, longGesture(keyCode)), 1)
             return
         }
+
         val gesture = when {
             keyCode == KeyEvent.KEYCODE_VOLUME_UP -> if (count >= 2) GestureType.VOL_UP_DOUBLE else GestureType.VOL_UP_SINGLE
             else                                  -> if (count >= 2) GestureType.VOL_DOWN_DOUBLE else GestureType.VOL_DOWN_SINGLE
         }
         val action = GestureConfig.getAction(this, gesture)
-        // For SYSTEM_DEFAULT honour the actual tap count: double-tap → 2 steps, triple → 3, …
-        val times = if (action == MediaAction.SYSTEM_DEFAULT) count else 1
+
+        val times = if (action == MediaAction.SYSTEM_DEFAULT) {
+            // Subtract the step already fired immediately on ACTION_DOWN so we don't double-adjust.
+            val alreadyFired = if (state.immediateStepFired) 1 else 0
+            maxOf(0, count - alreadyFired)
+        } else {
+            // Undo the blip that fired immediately on ACTION_DOWN before executing the real action.
+            if (state.immediateStepFired) undoVolume(keyCode)
+            1
+        }
+        state.immediateStepFired = false
         dispatchAction(keyCode, action, times)
     }
 
@@ -167,6 +200,12 @@ class VolumeKeyService : AccessibilityService() {
     private fun adjustVolume(keyCode: Int) {
         val direction = if (keyCode == KeyEvent.KEYCODE_VOLUME_UP)
             AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI)
+    }
+
+    private fun undoVolume(keyCode: Int) {
+        val direction = if (keyCode == KeyEvent.KEYCODE_VOLUME_UP)
+            AudioManager.ADJUST_LOWER else AudioManager.ADJUST_RAISE
         audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI)
     }
 
