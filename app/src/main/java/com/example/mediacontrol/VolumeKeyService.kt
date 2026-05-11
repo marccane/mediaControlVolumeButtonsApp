@@ -192,7 +192,10 @@ class VolumeKeyService : AccessibilityService() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun sendMediaKey(mediaKeyCode: Int) {
+        // AudioManager.dispatchMediaKeyEvent is deprecated since API 31 but remains the only
+        // option for third-party apps without NotificationListenerService access.
         audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, mediaKeyCode))
         audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, mediaKeyCode))
     }
@@ -200,13 +203,15 @@ class VolumeKeyService : AccessibilityService() {
     private fun adjustVolume(keyCode: Int) {
         val direction = if (keyCode == KeyEvent.KEYCODE_VOLUME_UP)
             AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER
-        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI)
+        // adjustVolume targets whichever stream is currently active, which is more
+        // correct on Android 14 where media may not always be on STREAM_MUSIC.
+        audioManager.adjustVolume(direction, AudioManager.FLAG_SHOW_UI)
     }
 
     private fun undoVolume(keyCode: Int) {
         val direction = if (keyCode == KeyEvent.KEYCODE_VOLUME_UP)
             AudioManager.ADJUST_LOWER else AudioManager.ADJUST_RAISE
-        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI)
+        audioManager.adjustVolume(direction, AudioManager.FLAG_SHOW_UI)
     }
 
     override fun onDestroy() {

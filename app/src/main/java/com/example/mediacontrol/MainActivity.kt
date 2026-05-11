@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.example.mediacontrol.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -42,7 +43,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSpinners() {
-        val actions = MediaAction.values()
+        val actions = MediaAction.entries.toTypedArray()
         val labels = actions.map { it.displayName }.toTypedArray()
 
         val pairs = listOf(
@@ -71,10 +72,10 @@ class MainActivity : AppCompatActivity() {
     private fun updateServiceStatus() {
         if (isServiceEnabled()) {
             binding.tvServiceStatus.text = "Service active — gestures are working"
-            binding.tvServiceStatus.setTextColor(getColor(android.R.color.holo_green_dark))
+            binding.tvServiceStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
         } else {
             binding.tvServiceStatus.text = "Service inactive — tap below to enable in Accessibility Settings"
-            binding.tvServiceStatus.setTextColor(getColor(android.R.color.holo_red_dark))
+            binding.tvServiceStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
         }
     }
 
