@@ -12,10 +12,11 @@ import android.view.accessibility.AccessibilityEvent
 class VolumeKeyService : AccessibilityService() {
 
     private companion object {
-        const val DOUBLE_PRESS_WINDOW = 350L
-        const val LONG_PRESS_DURATION = 650L
-        // Mimic the native Android volume-repeat feel
-        const val VOLUME_REPEAT_START_DELAY = 400L  // must be > DOUBLE_PRESS_WINDOW
+        const val DOUBLE_PRESS_WINDOW = 300L
+        const val LONG_PRESS_DURATION = 600L
+        // Only needs to exceed a normal tap duration (~100-150ms), not DOUBLE_PRESS_WINDOW.
+        // The repeater is cancelled on ACTION_UP, so it only fires if the key is physically held.
+        const val VOLUME_REPEAT_START_DELAY = 200L
         const val VOLUME_REPEAT_INTERVAL = 80L
         const val LONG_PRESS = -1
     }
